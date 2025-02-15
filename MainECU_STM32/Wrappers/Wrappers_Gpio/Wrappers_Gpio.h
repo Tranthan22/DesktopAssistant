@@ -1,6 +1,9 @@
 #ifndef _WRAPPERS_GPIO_H_
 #define _WRAPPERS_GPIO_H_
 
+#define Wrappers_Gpio_Write(p_LogicalChannel_u8, p_LogicLevel_u8)       HAL_GPIO_WritePin(p_LogicalChannel_u8, p_LogicLevel_u8)
+#define Wrappers_Gpio_Read(p_LogicalChannel_u8)                         HAL_GPIO_ReadPin(p_LogicalChannel_u8)
+
 void Wrappers_Gpio_Init(void);
 
 #endif /* _WRAPPERS_GPIO_H_ */
