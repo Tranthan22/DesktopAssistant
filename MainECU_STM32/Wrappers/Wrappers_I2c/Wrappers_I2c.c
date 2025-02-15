@@ -1,10 +1,3 @@
-/*
- * Wrappers_I2c.c
- *
- *  Created on: Feb 15, 2025
- *      Author: tranb
- */
-
 #include "main.h"
 
 I2C_HandleTypeDef hi2c1;

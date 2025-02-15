@@ -1,10 +1,3 @@
-/*
- * Wrappers_Pwm.c
- *
- *  Created on: Feb 15, 2025
- *      Author: tranb
- */
-
 #include "main.h"
 
 TIM_HandleTypeDef htim2;

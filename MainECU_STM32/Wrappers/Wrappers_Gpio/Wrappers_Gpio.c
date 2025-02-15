@@ -1,9 +1,3 @@
-/*
- * Wrappers_Gpio.c
- *
- *  Created on: Feb 15, 2025
- *      Author: tranb
- */
 #include "main.h"
 
 void Wrappers_Gpio_Init(void)

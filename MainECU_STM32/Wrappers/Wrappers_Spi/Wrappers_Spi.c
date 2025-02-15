@@ -1,10 +1,3 @@
-/*
- * Wrappers_Spi.c
- *
- *  Created on: Feb 15, 2025
- *      Author: tranb
- */
-
 #include "main.h"
 
 SPI_HandleTypeDef hspi1;
