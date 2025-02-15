@@ -79,7 +79,12 @@ void Error_Handler(void);
 #define ESP_SDA_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
+// GPIO module
+#define LogicalChannel_1              Screen_CS_GPIO_Port,Screen_CS_Pin
+#define LogicalChannel_2              Screen_RST_GPIO_Port,Screen_RST_Pin
+#define LogicalChannel_3              Screen_DC_GPIO_Port,Screen_DC_Pin
 
+// SPI Module
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus
