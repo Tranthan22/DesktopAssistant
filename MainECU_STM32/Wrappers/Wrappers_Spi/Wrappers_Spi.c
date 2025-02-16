@@ -42,15 +42,15 @@ void Wrappers_Spi_Init(void)
 	}
 }
 
-void Wrappers_Spi_Transmit(uint8_t p_LogicalChannel_u8, uint8_t p_Data_u8)
+void Wrappers_Spi_Transmit(uint8_t p_LogicalChannel_u8, uint8_t* p_Data_u8, uint16_t p_Size_u16)
 {
 	if(p_LogicalChannel_u8 == 1)
 	{
-		HAL_SPI_Transmit(&g_Spi1_Handler, &p_Data_u8, 1, 1);
+		HAL_SPI_Transmit(&g_Spi1_Handler, p_Data_u8, p_Size_u16, 100);
 	}
 	else if(p_LogicalChannel_u8 == 2)
 	{
-		HAL_SPI_Transmit(&g_Spi2_Handler, &p_Data_u8, 1, 1);
+		HAL_SPI_Transmit(&g_Spi2_Handler, p_Data_u8, p_Size_u16, 100);
 	}
 	else
 	{
