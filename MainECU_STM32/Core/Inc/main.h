@@ -1,24 +1,4 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file           : main.h
-  * @brief          : Header for main.c file.
-  *                   This file contains the common defines of the application.
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2024 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
-/* USER CODE END Header */
 
-/* Define to prevent recursive inclusion -------------------------------------*/
 #ifndef __MAIN_H
 #define __MAIN_H
 
@@ -26,37 +6,14 @@
 extern "C" {
 #endif
 
-/* Includes ------------------------------------------------------------------*/
+// /************************************************************************************************************
+//  * INCLUDES
+//  ************************************************************************************************************/
 #include "stm32f4xx_hal.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
-
-/* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
-
-/* USER CODE END ET */
-
-/* Exported constants --------------------------------------------------------*/
-/* USER CODE BEGIN EC */
-
-/* USER CODE END EC */
-
-/* Exported macro ------------------------------------------------------------*/
-/* USER CODE BEGIN EM */
-
-/* USER CODE END EM */
-
-/* Exported functions prototypes ---------------------------------------------*/
-void Error_Handler(void);
-
-/* USER CODE BEGIN EFP */
-
-/* USER CODE END EFP */
-
-/* Private defines -----------------------------------------------------------*/
+// /************************************************************************************************************
+//  * MACROS AND DEFINES
+//  ************************************************************************************************************/
 #define Touch_IRQ_Pin GPIO_PIN_3
 #define Touch_IRQ_GPIO_Port GPIOA
 #define Touch_CS_Pin GPIO_PIN_4
@@ -78,14 +35,27 @@ void Error_Handler(void);
 #define ESP_SDA_Pin GPIO_PIN_7
 #define ESP_SDA_GPIO_Port GPIOB
 
-/* USER CODE BEGIN Private defines */
 // GPIO module
-#define LogicalChannel_1              Screen_CS_GPIO_Port,Screen_CS_Pin
-#define LogicalChannel_2              Screen_RST_GPIO_Port,Screen_RST_Pin
-#define LogicalChannel_3              Screen_DC_GPIO_Port,Screen_DC_Pin
-
+#define LogicalChannel_1              	Screen_CS_GPIO_Port,Screen_CS_Pin       // ILI9341 Select Pin
+#define LogicalChannel_2              	Screen_RST_GPIO_Port,Screen_RST_Pin     // ILI9341 Reset Pin
+#define LogicalChannel_3              	Screen_DC_GPIO_Port,Screen_DC_Pin       // ILI9341 Data Control Pin
+#define LogicalChannel_4				Screen_Led_GPIO_Port,Screen_Led_Pin		// ILI9341 LED
 // SPI Module
-/* USER CODE END Private defines */
+#define SPI_Screen                    	1
+
+// /************************************************************************************************************
+//  * TYPEDEFS
+//  ************************************************************************************************************/
+
+
+// /************************************************************************************************************
+//  * EXPORTED VARIABLES
+//  ************************************************************************************************************/
+
+// /************************************************************************************************************
+//  * GLOBAL FUNCTION PROTOTYPES
+//  ************************************************************************************************************/
+void Error_Handler(void);
 
 #ifdef __cplusplus
 }
