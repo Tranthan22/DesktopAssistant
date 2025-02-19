@@ -1,10 +1,40 @@
-#include "main.h"
+#include "Wrappers_Clock.h"
 
+// /************************************************************************************************************
+//  * EXTERN VARIABLES
+//  ************************************************************************************************************/
 
+// /************************************************************************************************************
+//  * PRIVATE MACROS AND DEFINES
+//  ************************************************************************************************************/
+
+// /************************************************************************************************************
+//  * PRIVATE TYPEDEFS
+//  ************************************************************************************************************/
+
+// /************************************************************************************************************
+//  * STATIC VARIABLES
+//  ************************************************************************************************************/
+
+// /************************************************************************************************************
+//  * GLOBAL VARIABLES
+//  ************************************************************************************************************/
+
+// /************************************************************************************************************
+//  * STATIC FUNCTION PROTOTYPES
+//  ************************************************************************************************************/
+
+// /************************************************************************************************************
+//  * STATIC FUNCTIONS
+//  ************************************************************************************************************/
+
+// ************************************************************************************************************
+//  * GLOBAL FUNCTIONS
+//  ************************************************************************************************************/
 void Wrappers_Clock_SystemClock_Config(void)
 {
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_OscInitTypeDef f_Clock_RCC_OscInitStruct_st = {0};
+  RCC_ClkInitTypeDef f_Clock_RCC_ClkInitStruct_st = {0};
 
   /** Configure the main internal regulator output voltage
   */
@@ -14,30 +44,30 @@ void Wrappers_Clock_SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
-  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 8;
-  RCC_OscInitStruct.PLL.PLLN = 100;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
-  RCC_OscInitStruct.PLL.PLLQ = 4;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  f_Clock_RCC_OscInitStruct_st.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  f_Clock_RCC_OscInitStruct_st.HSIState = RCC_HSI_ON;
+  f_Clock_RCC_OscInitStruct_st.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  f_Clock_RCC_OscInitStruct_st.PLL.PLLState = RCC_PLL_ON;
+  f_Clock_RCC_OscInitStruct_st.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  f_Clock_RCC_OscInitStruct_st.PLL.PLLM = 8;
+  f_Clock_RCC_OscInitStruct_st.PLL.PLLN = 100;
+  f_Clock_RCC_OscInitStruct_st.PLL.PLLP = RCC_PLLP_DIV2;
+  f_Clock_RCC_OscInitStruct_st.PLL.PLLQ = 4;
+  if (HAL_RCC_OscConfig(&f_Clock_RCC_OscInitStruct_st) != HAL_OK)
   {
     Error_Handler();
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
   */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+  f_Clock_RCC_ClkInitStruct_st.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  f_Clock_RCC_ClkInitStruct_st.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  f_Clock_RCC_ClkInitStruct_st.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  f_Clock_RCC_ClkInitStruct_st.APB1CLKDivider = RCC_HCLK_DIV2;
+  f_Clock_RCC_ClkInitStruct_st.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_3) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&f_Clock_RCC_ClkInitStruct_st, FLASH_LATENCY_3) != HAL_OK)
   {
     Error_Handler();
   }

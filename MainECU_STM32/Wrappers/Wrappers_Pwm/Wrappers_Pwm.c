@@ -1,30 +1,61 @@
-#include "main.h"
+#include "Wrappers_Pwm.h"
 
-TIM_HandleTypeDef htim2;
+// /************************************************************************************************************
+//  * EXTERN VARIABLES
+//  ************************************************************************************************************/
+
+// /************************************************************************************************************
+//  * PRIVATE MACROS AND DEFINES
+//  ************************************************************************************************************/
+
+// /************************************************************************************************************
+//  * PRIVATE TYPEDEFS
+//  ************************************************************************************************************/
+
+// /************************************************************************************************************
+//  * STATIC VARIABLES
+//  ************************************************************************************************************/
+TIM_HandleTypeDef l_Tim_Handler_st;
+
+// /************************************************************************************************************
+//  * GLOBAL VARIABLES
+//  ************************************************************************************************************/
+
+// /************************************************************************************************************
+//  * STATIC FUNCTION PROTOTYPES
+//  ************************************************************************************************************/
+
+// /************************************************************************************************************
+//  * STATIC FUNCTIONS
+//  ************************************************************************************************************/
+
+// ************************************************************************************************************
+//  * GLOBAL FUNCTIONS
+//  ************************************************************************************************************/
 
 void Wrappers_Pwm_Init(void)
 {
-    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-    TIM_MasterConfigTypeDef sMasterConfig = {0};
+    TIM_ClockConfigTypeDef f_Clock_SourceConfig_st = {0};
+    TIM_MasterConfigTypeDef f_Clock_sMasterConfig_st = {0};
 
-    htim2.Instance = TIM2;
-    htim2.Init.Prescaler = 10000;
-    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim2.Init.Period = 999;
-    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
-    if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
+    l_Tim_Handler_st.Instance = TIM2;
+    l_Tim_Handler_st.Init.Prescaler = 10000;
+    l_Tim_Handler_st.Init.CounterMode = TIM_COUNTERMODE_UP;
+    l_Tim_Handler_st.Init.Period = 999;
+    l_Tim_Handler_st.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    l_Tim_Handler_st.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+    if (HAL_TIM_Base_Init(&l_Tim_Handler_st) != HAL_OK)
     {
         Error_Handler();
     }
-    sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
-    if (HAL_TIM_ConfigClockSource(&htim2, &sClockSourceConfig) != HAL_OK)
+    f_Clock_SourceConfig_st.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+    if (HAL_TIM_ConfigClockSource(&l_Tim_Handler_st, &f_Clock_SourceConfig_st) != HAL_OK)
     {
         Error_Handler();
     }
-    sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
-    sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
-    if (HAL_TIMEx_MasterConfigSynchronization(&htim2, &sMasterConfig) != HAL_OK)
+    f_Clock_sMasterConfig_st.MasterOutputTrigger = TIM_TRGO_RESET;
+    f_Clock_sMasterConfig_st.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+    if (HAL_TIMEx_MasterConfigSynchronization(&l_Tim_Handler_st, &f_Clock_sMasterConfig_st) != HAL_OK)
     {
         Error_Handler();
     }
