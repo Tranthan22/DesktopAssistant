@@ -71,13 +71,13 @@
 //  ************************************************************************************************************/
 void Libs_ILI9341_Init(void);
 void Libs_ILI9341_Reset(void);
-void Libs_ILI9341_SetRotation(uint8_t Rotation);
-void Libs_ILI9341_SetAddress(uint16_t X1, uint16_t Y1, uint16_t X2, uint16_t Y2);
-void Libs_ILI9341_FillScreen(uint16_t Colour);
-void Libs_ILI9341_DrawPixel(uint16_t X,uint16_t Y,uint16_t Colour);
-void Libs_ILI9341_DrawRectangle(uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t Colour);
-void Libs_ILI9341_DrawHorizontalLine(uint16_t X, uint16_t Y, uint16_t Width, uint16_t Colour);
-void Libs_ILI9341_DrawVerticalLine(uint16_t X, uint16_t Y, uint16_t Height, uint16_t Colour);
+void Libs_ILI9341_SetRotation(uint8_t p_Rotation_u8);
+void Libs_ILI9341_SetAddress(uint16_t p_LocationX1_u16, uint16_t p_LocationY1_u16, uint16_t p_LocationX2_u16, uint16_t p_LocationY2_u16);
+void Libs_ILI9341_FillScreen(uint16_t p_Colour_u16);
+void Libs_ILI9341_DrawPixel(uint16_t p_LocationX_u16, uint16_t p_LocationY_u16, uint16_t p_Colour_u16);
+void Libs_ILI9341_DrawRectangle(uint16_t p_LocationX_u16, uint16_t p_LocationY_u16, uint16_t p_Width_u16, uint16_t p_Height_u16, uint16_t p_Colour_u16);
+void Libs_ILI9341_DrawHorizontalLine(uint16_t p_LocationX_u16, uint16_t p_LocationY_u16, uint16_t p_Width_u16, uint16_t p_Colour_u16);
+void Libs_ILI9341_DrawVerticalLine(uint16_t p_LocationX_u16, uint16_t p_LocationY_u16, uint16_t p_Height_u16, uint16_t p_Colour_u16);
 	
 #endif
 

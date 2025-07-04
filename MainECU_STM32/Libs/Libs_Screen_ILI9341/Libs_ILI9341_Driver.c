@@ -1,4 +1,4 @@
-#include "main.h"
+#include "Typedef.h"
 #include "Wrappers_Spi.h"
 #include "Wrappers_Gpio.h"
 #include "Libs_ILI9341_Driver.h"
@@ -30,9 +30,9 @@ volatile uint16_t l_ScreenWidth_u16	 = ILI9341_SCREEN_WIDTH;
 //  ************************************************************************************************************/
 inline static void Libs_ILI9341_Enable(void);
 inline static void Libs_ILI9341_SPI_Init(void);
-inline static void Libs_ILI9341_WriteCommand(uint8_t Command);
-inline static void Libs_ILI9341_WriteData(uint8_t Data);
-static void Libs_ILI9341_DrawColourBurst(uint16_t Colour, uint32_t Size);
+inline static void Libs_ILI9341_WriteCommand(uint8_t p_Command_u8);
+inline static void Libs_ILI9341_WriteData(uint8_t p_Data_u8);
+static void Libs_ILI9341_DrawColourBurst(uint16_t p_Colour_u16, uint32_t p_Size_u32);
 
 // /************************************************************************************************************
 //  * STATIC FUNCTIONS
@@ -50,62 +50,64 @@ inline static void Libs_ILI9341_SPI_Init(void)
 }
 
 /* Send command */
-inline static void Libs_ILI9341_WriteCommand(uint8_t Command)
+inline static void Libs_ILI9341_WriteCommand(uint8_t p_Command_u8)
 {
 	Wrappers_Gpio_Write(LogicalChannel_1, 0);
 	Wrappers_Gpio_Write(LogicalChannel_3, 0);
-	Wrappers_Spi_Transmit(SPI_Screen, &Command, 1);
+	Wrappers_Spi_Transmit(SPI_Screen, &p_Command_u8, 1);
 	Wrappers_Gpio_Write(LogicalChannel_1, 1);
 }
 
 /* Send Data */
-inline static void Libs_ILI9341_WriteData(uint8_t Data)
+inline static void Libs_ILI9341_WriteData(uint8_t p_Data_u8)
 {
 	Wrappers_Gpio_Write(LogicalChannel_3, 1);	
 	Wrappers_Gpio_Write(LogicalChannel_1, 0);
-	Wrappers_Spi_Transmit(SPI_Screen, &Data, 1);	
+	Wrappers_Spi_Transmit(SPI_Screen, &p_Data_u8, 1);	
 	Wrappers_Gpio_Write(LogicalChannel_1, 1);
 }
 
 /*Sends block colour information to LCD*/
-static void Libs_ILI9341_DrawColourBurst(uint16_t Colour, uint32_t Size)
+static void Libs_ILI9341_DrawColourBurst(uint16_t p_Colour_u16, uint32_t p_Size_u32)
 {
 	//SENDS COLOUR
-	uint32_t Buffer_Size = 0;
-	if((Size*2) < ILI9341_BURST_MAX_SIZE)
+	uint8_t f_count_u32 = 0;
+	uint32_t f_BuffSize_u32 = 0;
+	
+	if((p_Size_u32*2) < ILI9341_BURST_MAX_SIZE)
 	{
-		Buffer_Size = Size;
+		f_BuffSize_u32 = p_Size_u32;
 	}
 	else
 	{
-		Buffer_Size = ILI9341_BURST_MAX_SIZE;
+		f_BuffSize_u32 = ILI9341_BURST_MAX_SIZE;
 	}
-		
+	
 	Wrappers_Gpio_Write(LogicalChannel_3, 1);	
 	Wrappers_Gpio_Write(LogicalChannel_1, 0);
-
-	unsigned char chifted = 	Colour>>8;;
-	unsigned char burst_buffer[Buffer_Size];
-	for(uint32_t j = 0; j < Buffer_Size; j+=2)
+	
+	uint8_t chifted = p_Colour_u16>>8;
+	uint8_t burst_buffer[f_BuffSize_u32];
+	for(f_count_u32 = 0; f_count_u32 < f_BuffSize_u32; f_count_u32+=2)
 	{
-		burst_buffer[j] = 	chifted;
-		burst_buffer[j+1] = Colour;
+		burst_buffer[f_count_u32] = chifted;
+		burst_buffer[f_count_u32+1] = p_Colour_u16;
 	}
 
-	uint32_t Sending_Size = Size*2;
-	uint32_t Sending_in_Block = Sending_Size/Buffer_Size;
-	uint32_t Remainder_from_block = Sending_Size%Buffer_Size;
+	uint32_t Sending_Size = p_Size_u32*2;
+	uint32_t Sending_in_Block = Sending_Size/f_BuffSize_u32;
+	uint32_t Remainder_from_block = Sending_Size%f_BuffSize_u32;
 
 	if(Sending_in_Block != 0)
 	{
-		for(uint32_t j = 0; j < (Sending_in_Block); j++)
+		for(f_count_u32 = 0; f_count_u32 < (Sending_in_Block); f_count_u32++)
 		{
-			Wrappers_Spi_Transmit(SPI_Screen, (unsigned char *)burst_buffer, Buffer_Size);	
+			Wrappers_Spi_Transmit(SPI_Screen, burst_buffer, f_BuffSize_u32);	
 		}
 	}
 
 	//REMAINDER!
-	Wrappers_Spi_Transmit(SPI_Screen, (unsigned char *)burst_buffer, Remainder_from_block);	
+	Wrappers_Spi_Transmit(SPI_Screen, burst_buffer, Remainder_from_block);	
 		
 	Wrappers_Gpio_Write(LogicalChannel_1, 1);
 }
@@ -124,19 +126,19 @@ void Libs_ILI9341_Reset(void)
 }
 
 /* Set Address - Location block - to draw into */
-void Libs_ILI9341_SetAddress(uint16_t X1, uint16_t Y1, uint16_t X2, uint16_t Y2)
+void Libs_ILI9341_SetAddress(uint16_t p_LocationX1_u16, uint16_t p_LocationY1_u16, uint16_t p_LocationX2_u16, uint16_t p_LocationY2_u16)
 {
 	Libs_ILI9341_WriteCommand(0x2A);
-	Libs_ILI9341_WriteData(X1>>8);
-	Libs_ILI9341_WriteData(X1);
-	Libs_ILI9341_WriteData(X2>>8);
-	Libs_ILI9341_WriteData(X2);
+	Libs_ILI9341_WriteData(p_LocationX1_u16>>8);
+	Libs_ILI9341_WriteData(p_LocationX1_u16);
+	Libs_ILI9341_WriteData(p_LocationX2_u16>>8);
+	Libs_ILI9341_WriteData(p_LocationX2_u16);
 
 	Libs_ILI9341_WriteCommand(0x2B);
-	Libs_ILI9341_WriteData(Y1>>8);
-	Libs_ILI9341_WriteData(Y1);
-	Libs_ILI9341_WriteData(Y2>>8);
-	Libs_ILI9341_WriteData(Y2);
+	Libs_ILI9341_WriteData(p_LocationY1_u16>>8);
+	Libs_ILI9341_WriteData(p_LocationY1_u16);
+	Libs_ILI9341_WriteData(p_LocationY2_u16>>8);
+	Libs_ILI9341_WriteData(p_LocationY2_u16);
 
 	Libs_ILI9341_WriteCommand(0x2C);
 }
@@ -315,10 +317,10 @@ void Libs_ILI9341_Init(void)
 
 //FILL THE ENTIRE SCREEN WITH SELECTED COLOUR (either #define-d ones or custom 16bit)
 /*Sets address (entire screen) and Sends Height*Width ammount of colour information to LCD*/
-void Libs_ILI9341_FillScreen(uint16_t Colour)
+void Libs_ILI9341_FillScreen(uint16_t p_Colour_u16)
 {
 	Libs_ILI9341_SetAddress(0,0,l_ScreenWidth_u16,l_ScreenHeight_u16);	
-	Libs_ILI9341_DrawColourBurst(Colour, l_ScreenWidth_u16*l_ScreenHeight_u16);	
+	Libs_ILI9341_DrawColourBurst(p_Colour_u16, l_ScreenWidth_u16*l_ScreenHeight_u16);	
 }
 
 //DRAW PIXEL AT XY POSITION WITH SELECTED COLOUR
@@ -327,32 +329,32 @@ void Libs_ILI9341_FillScreen(uint16_t Colour)
 //Using pixels to draw big simple structures is not recommended as it is really slow
 //Try using either rectangles or lines if possible
 //
-void Libs_ILI9341_DrawPixel(uint16_t X, uint16_t Y, uint16_t Colour)
+void Libs_ILI9341_DrawPixel(uint16_t p_LocationX_u16, uint16_t p_LocationY_u16, uint16_t p_Colour_u16)
 {
-    if ((X >= l_ScreenWidth_u16) || (Y >= l_ScreenHeight_u16)) return; // OUT OF BOUNDS!
+    if ((p_LocationX_u16 >= l_ScreenWidth_u16) || (p_LocationY_u16 >= l_ScreenHeight_u16)) return; // OUT OF BOUNDS!
 
     uint8_t Temp_Buffer[4];
 
     // Set column address (X)
     Libs_ILI9341_WriteCommand(0x2A);
-    Temp_Buffer[0] = X >> 8;
-    Temp_Buffer[1] = X;
-    Temp_Buffer[2] = (X + 1) >> 8;
-    Temp_Buffer[3] = (X + 1);
+    Temp_Buffer[0] = p_LocationX_u16 >> 8;
+    Temp_Buffer[1] = p_LocationX_u16;
+    Temp_Buffer[2] = (p_LocationX_u16 + 1) >> 8;
+    Temp_Buffer[3] = (p_LocationX_u16 + 1);
     Wrappers_Spi_Transmit(SPI_Screen, Temp_Buffer, 4);
 
     // Set row address (Y)
     Libs_ILI9341_WriteCommand(0x2B);
-    Temp_Buffer[0] = Y >> 8;
-    Temp_Buffer[1] = Y;
-    Temp_Buffer[2] = (Y + 1) >> 8;
-    Temp_Buffer[3] = (Y + 1);
+    Temp_Buffer[0] = p_LocationY_u16 >> 8;
+    Temp_Buffer[1] = p_LocationY_u16;
+    Temp_Buffer[2] = (p_LocationY_u16 + 1) >> 8;
+    Temp_Buffer[3] = (p_LocationY_u16 + 1);
     Wrappers_Spi_Transmit(SPI_Screen, Temp_Buffer, 4);
 
     // Write pixel color
     Libs_ILI9341_WriteCommand(0x2C);
-    Temp_Buffer[0] = Colour >> 8;
-    Temp_Buffer[1] = Colour;
+    Temp_Buffer[0] = p_Colour_u16 >> 8;
+    Temp_Buffer[1] = p_Colour_u16;
     Wrappers_Spi_Transmit(SPI_Screen, Temp_Buffer, 2);
 }
 
@@ -363,42 +365,42 @@ void Libs_ILI9341_DrawPixel(uint16_t X, uint16_t Y, uint16_t Colour)
 //As with all other draw calls x0 and y0 locations dependant on screen orientation
 //
 
-void Libs_ILI9341_DrawRectangle(uint16_t X, uint16_t Y, uint16_t Width, uint16_t Height, uint16_t Colour)
+void Libs_ILI9341_DrawRectangle(uint16_t p_LocationX_u16, uint16_t p_LocationY_u16, uint16_t p_Width_u16, uint16_t p_Height_u16, uint16_t p_Colour_u16)
 {
-	if((X >=l_ScreenWidth_u16) || (Y >=l_ScreenHeight_u16)) return;
-	if((X+Width-1)>=l_ScreenWidth_u16)
+	if((p_LocationX_u16 >=l_ScreenWidth_u16) || (p_LocationY_u16 >=l_ScreenHeight_u16)) return;
+	if((p_LocationX_u16+p_Width_u16-1)>=l_ScreenWidth_u16)
 		{
-			Width=l_ScreenWidth_u16-X;
+			p_Width_u16=l_ScreenWidth_u16-p_LocationX_u16;
 		}
-	if((Y+Height-1)>=l_ScreenHeight_u16)
+	if((p_LocationY_u16+p_Height_u16-1)>=l_ScreenHeight_u16)
 		{
-			Height=l_ScreenHeight_u16-Y;
+			p_Height_u16=l_ScreenHeight_u16-p_LocationY_u16;
 		}
-	Libs_ILI9341_SetAddress(X, Y, X+Width-1, Y+Height-1);
-	Libs_ILI9341_DrawColourBurst(Colour, Height*Width);
+	Libs_ILI9341_SetAddress(p_LocationX_u16, p_LocationY_u16, p_LocationX_u16+p_Width_u16-1, p_LocationY_u16+p_Height_u16-1);
+	Libs_ILI9341_DrawColourBurst(p_Colour_u16, p_Height_u16*p_Width_u16);
 }
 
 //DRAW LINE FROM X,Y LOCATION to X+Width,Y LOCATION
-void Libs_ILI9341_DrawHorizontalLine(uint16_t X, uint16_t Y, uint16_t Width, uint16_t Colour)
+void Libs_ILI9341_DrawHorizontalLine(uint16_t p_LocationX_u16, uint16_t p_LocationY_u16, uint16_t p_Width_u16, uint16_t p_Colour_u16)
 {
-	if((X >=l_ScreenWidth_u16) || (Y >=l_ScreenHeight_u16)) return;
-	if( (X+Width-1) >= l_ScreenWidth_u16)
+	if((p_LocationX_u16 >=l_ScreenWidth_u16) || (p_LocationY_u16 >=l_ScreenHeight_u16)) return;
+	if( (p_LocationX_u16+p_Width_u16-1) >= l_ScreenWidth_u16)
 	{
-		Width=l_ScreenWidth_u16-X;
+		p_Width_u16=l_ScreenWidth_u16-p_LocationX_u16;
 	}
-	Libs_ILI9341_SetAddress(X, Y, X+Width-1, Y);
-	Libs_ILI9341_DrawColourBurst(Colour, Width);
+	Libs_ILI9341_SetAddress(p_LocationX_u16, p_LocationY_u16, p_LocationX_u16+p_Width_u16-1, p_LocationY_u16);
+	Libs_ILI9341_DrawColourBurst(p_Colour_u16, p_Width_u16);
 }
 
 //DRAW LINE FROM X,Y LOCATION to X,Y+Height LOCATION
-void Libs_ILI9341_DrawVerticalLine(uint16_t X, uint16_t Y, uint16_t Height, uint16_t Colour)
+void Libs_ILI9341_DrawVerticalLine(uint16_t p_LocationX_u16, uint16_t p_LocationY_u16, uint16_t p_Height_u16, uint16_t p_Colour_u16)
 {
-	if((X >=l_ScreenWidth_u16) || (Y >=l_ScreenHeight_u16)) return;
-	if((Y+Height-1)>=l_ScreenHeight_u16)
-		{
-			Height=l_ScreenHeight_u16-Y;
-		}
-	Libs_ILI9341_SetAddress(X, Y, X, Y+Height-1);
-	Libs_ILI9341_DrawColourBurst(Colour, Height);
+	if((p_LocationX_u16 >=l_ScreenWidth_u16) || (p_LocationY_u16 >=l_ScreenHeight_u16)) return;
+	if((p_LocationY_u16+p_Height_u16-1)>=l_ScreenHeight_u16)
+	{
+		p_Height_u16=l_ScreenHeight_u16-p_LocationY_u16;
+	}
+	Libs_ILI9341_SetAddress(p_LocationX_u16, p_LocationY_u16, p_LocationX_u16, p_LocationY_u16+p_Height_u16-1);
+	Libs_ILI9341_DrawColourBurst(p_Colour_u16, p_Height_u16);
 }
 
