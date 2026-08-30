@@ -32,6 +32,7 @@ inline static void Libs_ILI9341_Enable(void);
 inline static void Libs_ILI9341_SPI_Init(void);
 inline static void Libs_ILI9341_WriteCommand(uint8_t Command);
 inline static void Libs_ILI9341_WriteData(uint8_t Data);
+static void Libs_ILI9341_WriteDataBuffer(uint8_t* p_Data_u8, uint16_t p_Size_u16);
 static void Libs_ILI9341_DrawColourBurst(uint16_t Colour, uint32_t Size);
 
 // /************************************************************************************************************
@@ -67,24 +68,42 @@ inline static void Libs_ILI9341_WriteData(uint8_t Data)
 	Wrappers_Gpio_Write(LogicalChannel_1, 1);
 }
 
+/* Send a data buffer: DC must be high (data) and CS low for the whole transfer */
+static void Libs_ILI9341_WriteDataBuffer(uint8_t* p_Data_u8, uint16_t p_Size_u16)
+{
+	Wrappers_Gpio_Write(LogicalChannel_3, 1);
+	Wrappers_Gpio_Write(LogicalChannel_1, 0);
+	Wrappers_Spi_Transmit(SPI_Screen, p_Data_u8, p_Size_u16);
+	Wrappers_Gpio_Write(LogicalChannel_1, 1);
+}
+
 /*Sends block colour information to LCD*/
 static void Libs_ILI9341_DrawColourBurst(uint16_t Colour, uint32_t Size)
 {
 	//SENDS COLOUR
+	uint32_t Sending_Size = Size*2;			// 2 bytes per pixel
 	uint32_t Buffer_Size = 0;
-	if((Size*2) < ILI9341_BURST_MAX_SIZE)
+
+	if(Sending_Size == 0)
 	{
-		Buffer_Size = Size;
+		return;								// nothing to send (also guards the divisions below)
+	}
+
+	/* Buffer holds BYTES, not pixels, and must stay even so the (high,low) colour
+	   pairs never shift between blocks */
+	if(Sending_Size < ILI9341_BURST_MAX_SIZE)
+	{
+		Buffer_Size = Sending_Size;
 	}
 	else
 	{
 		Buffer_Size = ILI9341_BURST_MAX_SIZE;
 	}
-		
-	Wrappers_Gpio_Write(LogicalChannel_3, 1);	
+
+	Wrappers_Gpio_Write(LogicalChannel_3, 1);
 	Wrappers_Gpio_Write(LogicalChannel_1, 0);
 
-	unsigned char chifted = 	Colour>>8;;
+	unsigned char chifted = 	Colour>>8;
 	unsigned char burst_buffer[Buffer_Size];
 	for(uint32_t j = 0; j < Buffer_Size; j+=2)
 	{
@@ -92,7 +111,6 @@ static void Libs_ILI9341_DrawColourBurst(uint16_t Colour, uint32_t Size)
 		burst_buffer[j+1] = Colour;
 	}
 
-	uint32_t Sending_Size = Size*2;
 	uint32_t Sending_in_Block = Sending_Size/Buffer_Size;
 	uint32_t Remainder_from_block = Sending_Size%Buffer_Size;
 
@@ -100,19 +118,33 @@ static void Libs_ILI9341_DrawColourBurst(uint16_t Colour, uint32_t Size)
 	{
 		for(uint32_t j = 0; j < (Sending_in_Block); j++)
 		{
-			Wrappers_Spi_Transmit(SPI_Screen, (unsigned char *)burst_buffer, Buffer_Size);	
+			Wrappers_Spi_Transmit(SPI_Screen, (unsigned char *)burst_buffer, Buffer_Size);
 		}
 	}
 
 	//REMAINDER!
-	Wrappers_Spi_Transmit(SPI_Screen, (unsigned char *)burst_buffer, Remainder_from_block);	
-		
+	if(Remainder_from_block != 0)
+	{
+		Wrappers_Spi_Transmit(SPI_Screen, (unsigned char *)burst_buffer, Remainder_from_block);
+	}
+
 	Wrappers_Gpio_Write(LogicalChannel_1, 1);
 }
 
 // ************************************************************************************************************
 //  * GLOBAL FUNCTIONS
 //  ************************************************************************************************************/
+/* Current screen size - follows the active rotation set by Libs_ILI9341_SetRotation */
+uint16_t Libs_ILI9341_GetScreenWidth(void)
+{
+	return l_ScreenWidth_u16;
+}
+
+uint16_t Libs_ILI9341_GetScreenHeight(void)
+{
+	return l_ScreenHeight_u16;
+}
+
 /*HARDWARE RESET*/
 void Libs_ILI9341_Reset(void)
 {
@@ -339,7 +371,7 @@ void Libs_ILI9341_DrawPixel(uint16_t X, uint16_t Y, uint16_t Colour)
     Temp_Buffer[1] = X;
     Temp_Buffer[2] = (X + 1) >> 8;
     Temp_Buffer[3] = (X + 1);
-    Wrappers_Spi_Transmit(SPI_Screen, Temp_Buffer, 4);
+    Libs_ILI9341_WriteDataBuffer(Temp_Buffer, 4);
 
     // Set row address (Y)
     Libs_ILI9341_WriteCommand(0x2B);
@@ -347,13 +379,13 @@ void Libs_ILI9341_DrawPixel(uint16_t X, uint16_t Y, uint16_t Colour)
     Temp_Buffer[1] = Y;
     Temp_Buffer[2] = (Y + 1) >> 8;
     Temp_Buffer[3] = (Y + 1);
-    Wrappers_Spi_Transmit(SPI_Screen, Temp_Buffer, 4);
+    Libs_ILI9341_WriteDataBuffer(Temp_Buffer, 4);
 
     // Write pixel color
     Libs_ILI9341_WriteCommand(0x2C);
     Temp_Buffer[0] = Colour >> 8;
     Temp_Buffer[1] = Colour;
-    Wrappers_Spi_Transmit(SPI_Screen, Temp_Buffer, 2);
+    Libs_ILI9341_WriteDataBuffer(Temp_Buffer, 2);
 }
 
 

@@ -31,40 +31,8 @@
 // ************************************************************************************************************
 //  * GLOBAL FUNCTIONS
 //  ************************************************************************************************************/
+/* Cau hinh chan (mode/pull/level, ke ca PC13 LED va idle-high cho Touch/SD CS)
+   do CubeMX dam nhiem (MX_GPIO_Init trong main.c) */
 void Wrappers_Gpio_Init(void)
 {
-    GPIO_InitTypeDef f_Gpio_InitStruct_st = {0};
-
-    /* GPIO Ports Clock Enable */
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
-
-    /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(GPIOA, Touch_CS_Pin|SDCard_CS_Pin, GPIO_PIN_RESET);
-
-    /*Configure GPIO pin Output Level */
-    HAL_GPIO_WritePin(GPIOB, Screen_CS_Pin|Screen_RST_Pin|Screen_DC_Pin|Screen_Led_Pin
-                            |ESP_CS_Pin, GPIO_PIN_RESET);
-
-    /*Configure GPIO pin : Touch_IRQ_Pin */
-    f_Gpio_InitStruct_st.Pin = Touch_IRQ_Pin;
-    f_Gpio_InitStruct_st.Mode = GPIO_MODE_IT_RISING;
-    f_Gpio_InitStruct_st.Pull = GPIO_NOPULL;
-    HAL_GPIO_Init(Touch_IRQ_GPIO_Port, &f_Gpio_InitStruct_st);
-
-    /*Configure GPIO pins : Touch_CS_Pin SDCard_CS_Pin */
-    f_Gpio_InitStruct_st.Pin = Touch_CS_Pin|SDCard_CS_Pin;
-    f_Gpio_InitStruct_st.Mode = GPIO_MODE_OUTPUT_PP;
-    f_Gpio_InitStruct_st.Pull = GPIO_NOPULL;
-    f_Gpio_InitStruct_st.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOA, &f_Gpio_InitStruct_st);
-
-    /*Configure GPIO pins : Screen_CS_Pin Screen_RST_Pin Screen_DC_Pin Screen_Led_Pin
-                            ESP_CS_Pin */
-    f_Gpio_InitStruct_st.Pin = Screen_CS_Pin|Screen_RST_Pin|Screen_DC_Pin|Screen_Led_Pin
-                            |ESP_CS_Pin;
-    f_Gpio_InitStruct_st.Mode = GPIO_MODE_OUTPUT_PP;
-    f_Gpio_InitStruct_st.Pull = GPIO_NOPULL;
-    f_Gpio_InitStruct_st.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOB, &f_Gpio_InitStruct_st);
 }

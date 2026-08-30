@@ -35,6 +35,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include <string.h>
 #include "ff_gen_drv.h"
+#include "Libs_SdCard.h"	/* SD card SPI-mode driver (Libs layer) */
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -81,7 +82,16 @@ DSTATUS USER_initialize (
 )
 {
   /* USER CODE BEGIN INIT */
-    Stat = STA_NOINIT;
+    (void)pdrv;
+
+    if (Libs_SdCard_Init() == SDCARD_OK)
+    {
+        Stat &= ~STA_NOINIT;
+    }
+    else
+    {
+        Stat = STA_NOINIT;
+    }
     return Stat;
   /* USER CODE END INIT */
 }
@@ -96,7 +106,16 @@ DSTATUS USER_status (
 )
 {
   /* USER CODE BEGIN STATUS */
-    Stat = STA_NOINIT;
+    (void)pdrv;
+
+    if (Libs_SdCard_IsInitialized())
+    {
+        Stat &= ~STA_NOINIT;
+    }
+    else
+    {
+        Stat = STA_NOINIT;
+    }
     return Stat;
   /* USER CODE END STATUS */
 }
@@ -117,6 +136,16 @@ DRESULT USER_read (
 )
 {
   /* USER CODE BEGIN READ */
+    (void)pdrv;
+
+    if (Stat & STA_NOINIT)
+    {
+        return RES_NOTRDY;
+    }
+    if (Libs_SdCard_ReadBlocks(buff, sector, count) != SDCARD_OK)
+    {
+        return RES_ERROR;
+    }
     return RES_OK;
   /* USER CODE END READ */
 }
@@ -138,7 +167,16 @@ DRESULT USER_write (
 )
 {
   /* USER CODE BEGIN WRITE */
-  /* USER CODE HERE */
+    (void)pdrv;
+
+    if (Stat & STA_NOINIT)
+    {
+        return RES_NOTRDY;
+    }
+    if (Libs_SdCard_WriteBlocks(buff, sector, count) != SDCARD_OK)
+    {
+        return RES_ERROR;
+    }
     return RES_OK;
   /* USER CODE END WRITE */
 }
@@ -160,6 +198,38 @@ DRESULT USER_ioctl (
 {
   /* USER CODE BEGIN IOCTL */
     DRESULT res = RES_ERROR;
+    (void)pdrv;
+
+    if (Stat & STA_NOINIT)
+    {
+        return RES_NOTRDY;
+    }
+
+    switch (cmd)
+    {
+    case CTRL_SYNC:
+        res = (Libs_SdCard_Sync() == SDCARD_OK) ? RES_OK : RES_ERROR;
+        break;
+
+    case GET_SECTOR_COUNT:
+        *(DWORD*)buff = Libs_SdCard_GetSectorCount();
+        res = (*(DWORD*)buff != 0) ? RES_OK : RES_ERROR;
+        break;
+
+    case GET_SECTOR_SIZE:
+        *(WORD*)buff = SDCARD_BLOCK_SIZE;
+        res = RES_OK;
+        break;
+
+    case GET_BLOCK_SIZE:
+        *(DWORD*)buff = 1;
+        res = RES_OK;
+        break;
+
+    default:
+        res = RES_PARERR;
+        break;
+    }
     return res;
   /* USER CODE END IOCTL */
 }

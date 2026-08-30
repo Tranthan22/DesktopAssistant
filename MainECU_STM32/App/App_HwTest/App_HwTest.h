@@ -1,5 +1,18 @@
-#ifndef LIBS_I2C_LIBS_I2C_H_
-#define LIBS_I2C_LIBS_I2C_H_
+//-----------------------------------
+//	App_HwTest - man hinh kiem tra phan cung
+//-----------------------------------
+//	Test 3 phan cung va bao ket qua truc tiep len man hinh:
+//	- SCREEN: neu doc duoc chu + 3 o mau RGB la man hinh chay dung
+//	- SD CARD: mount FatFs -> ghi file HWTEST.TXT -> doc lai so sanh -> hien dung luong
+//	- TOUCH: cham vao khung ben duoi de ve, toa do hien thi realtime
+//
+//	Cach dung (main.c):
+//		App_HwTest_Init();          // ve UI + test SD 1 lan
+//		while(1) { App_HwTest_Run(); }   // poll cam ung
+//-----------------------------------
+
+#ifndef APP_HWTEST_APP_HWTEST_H_
+#define APP_HWTEST_APP_HWTEST_H_
 
 // /************************************************************************************************************
 //  * INCLUDES
@@ -20,6 +33,7 @@
 // /************************************************************************************************************
 //  * GLOBAL FUNCTION PROTOTYPES
 //  ************************************************************************************************************/
-void Libs_I2c_Init(void);
+void App_HwTest_Init(void);
+void App_HwTest_Run(void);
 
-#endif /* LIBS_I2C_LIBS_I2C_H_ */
+#endif /* APP_HWTEST_APP_HWTEST_H_ */

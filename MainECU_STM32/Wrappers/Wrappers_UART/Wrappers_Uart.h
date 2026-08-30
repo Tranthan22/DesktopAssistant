@@ -1,5 +1,5 @@
-#ifndef _WRAPPERS_I2C_H_
-#define _WRAPPERS_I2C_H_
+#ifndef _WRAPPERS_UART_H_
+#define _WRAPPERS_UART_H_
 
 // /************************************************************************************************************
 //  * INCLUDES
@@ -21,6 +21,9 @@
 // /************************************************************************************************************
 //  * GLOBAL FUNCTION PROTOTYPES
 //  ************************************************************************************************************/
-void Wrappers_I2c_Init(void);
+void Wrappers_Uart_Init(void);
+void Wrappers_Uart_Transmit(uint8_t p_LogicalChannel_u8, const uint8_t* p_Data_u8, uint16_t p_Size_u16);
+// Doc het byte dang cho trong RX (khong blocking). Tra ve so byte da doc
+uint16_t Wrappers_Uart_Receive(uint8_t p_LogicalChannel_u8, uint8_t* p_Buffer_u8, uint16_t p_MaxSize_u16);
 
-#endif /* _WRAPPERS_I2C_H_ */
+#endif /* _WRAPPERS_UART_H_ */

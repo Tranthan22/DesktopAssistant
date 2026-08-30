@@ -71,6 +71,8 @@
 //  ************************************************************************************************************/
 void Libs_ILI9341_Init(void);
 void Libs_ILI9341_Reset(void);
+uint16_t Libs_ILI9341_GetScreenWidth(void);
+uint16_t Libs_ILI9341_GetScreenHeight(void);
 void Libs_ILI9341_SetRotation(uint8_t Rotation);
 void Libs_ILI9341_SetAddress(uint16_t X1, uint16_t Y1, uint16_t X2, uint16_t Y2);
 void Libs_ILI9341_FillScreen(uint16_t Colour);

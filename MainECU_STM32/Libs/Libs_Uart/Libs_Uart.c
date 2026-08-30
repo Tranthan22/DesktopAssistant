@@ -1,4 +1,4 @@
-#include "Wrappers_I2c.h"
+#include "Libs_Uart.h"
 
 // /************************************************************************************************************
 //  * EXTERN VARIABLES
@@ -15,7 +15,7 @@
 // /************************************************************************************************************
 //  * STATIC VARIABLES
 //  ************************************************************************************************************/
-I2C_HandleTypeDef l_I2c_Handler_st;
+
 // /************************************************************************************************************
 //  * GLOBAL VARIABLES
 //  ************************************************************************************************************/
@@ -31,19 +31,7 @@ I2C_HandleTypeDef l_I2c_Handler_st;
 // ************************************************************************************************************
 //  * GLOBAL FUNCTIONS
 //  ************************************************************************************************************/
-void Wrappers_I2c_Init(void)
+void Libs_Uart_Init(void)
 {
-    l_I2c_Handler_st.Instance = I2C1;
-    l_I2c_Handler_st.Init.ClockSpeed = 100000;
-    l_I2c_Handler_st.Init.DutyCycle = I2C_DUTYCYCLE_2;
-    l_I2c_Handler_st.Init.OwnAddress1 = 0;
-    l_I2c_Handler_st.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-    l_I2c_Handler_st.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-    l_I2c_Handler_st.Init.OwnAddress2 = 0;
-    l_I2c_Handler_st.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-    l_I2c_Handler_st.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-    if (HAL_I2C_Init(&l_I2c_Handler_st) != HAL_OK)
-    {
-        Error_Handler();
-    }
+    Wrappers_Uart_Init();
 }

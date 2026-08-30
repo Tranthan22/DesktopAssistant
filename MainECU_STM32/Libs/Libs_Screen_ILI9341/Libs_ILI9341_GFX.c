@@ -31,10 +31,39 @@
 // /************************************************************************************************************
 //  * STATIC FUNCTION PROTOTYPES
 //  ************************************************************************************************************/
+static void Libs_ILI9341_DrawSpan(int32_t p_StartX_i32, int32_t p_EndX_i32, int32_t p_Y_i32, uint16_t p_Colour_u16);
 
 // /************************************************************************************************************
 //  * STATIC FUNCTIONS
 //  ************************************************************************************************************/
+/* Draw one horizontal run of pixels, clipped to the screen.
+   Signed inputs: circle spans routinely run off the left/top edge and must be clipped
+   before they wrap around in unsigned arithmetic. */
+static void Libs_ILI9341_DrawSpan(int32_t p_StartX_i32, int32_t p_EndX_i32, int32_t p_Y_i32, uint16_t p_Colour_u16)
+{
+	int32_t f_ScreenWidth_i32 = (int32_t)Libs_ILI9341_GetScreenWidth();
+	int32_t f_ScreenHeight_i32 = (int32_t)Libs_ILI9341_GetScreenHeight();
+
+	if((p_Y_i32 < 0) || (p_Y_i32 >= f_ScreenHeight_i32))
+	{
+		return;
+	}
+	if(p_StartX_i32 < 0)
+	{
+		p_StartX_i32 = 0;
+	}
+	if(p_EndX_i32 > (f_ScreenWidth_i32 - 1))
+	{
+		p_EndX_i32 = f_ScreenWidth_i32 - 1;
+	}
+	if(p_StartX_i32 > p_EndX_i32)
+	{
+		return;
+	}
+
+	Libs_ILI9341_DrawHorizontalLine((uint16_t)p_StartX_i32, (uint16_t)p_Y_i32,
+	                                (uint16_t)(p_EndX_i32 - p_StartX_i32 + 1), p_Colour_u16);
+}
 
 // ************************************************************************************************************
 //  * GLOBAL FUNCTIONS
@@ -82,20 +111,18 @@ void Libs_ILI9341_DrawFilledCircle(uint16_t p_LocationX_u16, uint16_t p_Location
     int32_t f_ChangeX_i32 = 1 - (p_Radius_u16 << 1);
     int32_t f_ChangeY_i32 = 0;
     int32_t f_RadiusError_i32 = 0;
-	int32_t f_Counter1_i32;
+	int32_t f_CenterX_i32 = (int32_t)p_LocationX_u16;
+	int32_t f_CenterY_i32 = (int32_t)p_LocationY_u16;
 
     while (f_IndexX_i32 >= f_IndexY_i32)
     {
-        for (f_Counter1_i32 = p_LocationX_u16 - f_IndexX_i32; f_Counter1_i32 <= p_LocationX_u16 + f_IndexX_i32; f_Counter1_i32++)
-        {
-            Libs_ILI9341_DrawPixel(f_Counter1_i32, p_LocationY_u16 + f_IndexY_i32,p_Colour_u16);
-            Libs_ILI9341_DrawPixel(f_Counter1_i32, p_LocationY_u16 - f_IndexY_i32,p_Colour_u16);
-        }
-        for (f_Counter1_i32 = p_LocationX_u16 - f_IndexY_i32; f_Counter1_i32 <= p_LocationX_u16 + f_IndexY_i32; f_Counter1_i32++)
-        {
-            Libs_ILI9341_DrawPixel(f_Counter1_i32, p_LocationY_u16 + f_IndexX_i32,p_Colour_u16);
-            Libs_ILI9341_DrawPixel(f_Counter1_i32, p_LocationY_u16 - f_IndexX_i32,p_Colour_u16);
-        }
+        /* Each step fills whole rows in one burst transfer instead of pixel by pixel:
+           a filled circle is a stack of horizontal runs, and per-pixel writes cost
+           six SPI transactions each, which makes animation unusably slow. */
+        Libs_ILI9341_DrawSpan(f_CenterX_i32 - f_IndexX_i32, f_CenterX_i32 + f_IndexX_i32, f_CenterY_i32 + f_IndexY_i32, p_Colour_u16);
+        Libs_ILI9341_DrawSpan(f_CenterX_i32 - f_IndexX_i32, f_CenterX_i32 + f_IndexX_i32, f_CenterY_i32 - f_IndexY_i32, p_Colour_u16);
+        Libs_ILI9341_DrawSpan(f_CenterX_i32 - f_IndexY_i32, f_CenterX_i32 + f_IndexY_i32, f_CenterY_i32 + f_IndexX_i32, p_Colour_u16);
+        Libs_ILI9341_DrawSpan(f_CenterX_i32 - f_IndexY_i32, f_CenterX_i32 + f_IndexY_i32, f_CenterY_i32 - f_IndexX_i32, p_Colour_u16);
 
         f_IndexY_i32++;
         f_RadiusError_i32 += f_ChangeY_i32;
