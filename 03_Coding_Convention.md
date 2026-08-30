@@ -185,10 +185,10 @@ void Libs_Xxx_Init(void)
    - Handle static: `UART_HandleTypeDef l_Uart_Handler_st;`
    - `Wrappers_Uart_Init()` cấu hình + kiểm tra `HAL_OK`.
    - Các hàm thao tác nhận `p_LogicalChannel_u8` nếu có nhiều instance.
-   - Cấu hình chân AF thêm vào `HAL_UART_MspInit` trong [stm32f4xx_hal_msp.c](../Core/Src/stm32f4xx_hal_msp.c).
+   - Cấu hình chân AF thêm vào `HAL_UART_MspInit` trong [stm32f4xx_hal_msp.c](MainECU_STM32/Core/Src/stm32f4xx_hal_msp.c).
 2. Tạo `Libs/Libs_Uart/Libs_Uart.c|.h`: pass-through hoặc macro alias xuống Wrappers.
-3. Khai báo pin define + logical channel (nếu cần) trong [main.h](../Core/Inc/main.h).
-4. Gọi `Libs_Uart_Init()` trong [main.c](../Core/Src/main.c) theo đúng thứ tự khởi động (sau Clock, cùng nhóm ngoại vi).
+3. Khai báo pin define + logical channel (nếu cần) trong [main.h](MainECU_STM32/Core/Inc/main.h).
+4. Gọi `Libs_Uart_Init()` trong [main.c](MainECU_STM32/Core/Src/main.c) theo đúng thứ tự khởi động (sau Clock, cùng nhóm ngoại vi).
 5. Thêm đường dẫn include của 2 thư mục mới vào cấu hình build (project settings của CubeIDE).
 
 ## 10. Điểm chưa nhất quán trong code hiện tại (biết để không sao chép theo)

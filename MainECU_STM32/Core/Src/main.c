@@ -26,7 +26,7 @@
 #include "Libs_Gpio.h"
 #include "Libs_ILI9341_Driver.h"
 #include "Libs_XPT2046_Driver.h"
-#include "App_HwTest.h"
+#include "App_Manager.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -112,7 +112,7 @@ int main(void)
   Libs_ILI9341_Init();
   Libs_XPT2046_Init();
   Libs_Gpio_Write(LogicalChannel_4, 1);         /* Screen backlight on */
-  App_HwTest_Init();
+  App_Manager_Init();                           /* mount SD + EspLink + app mac dinh (Clock) */
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -122,7 +122,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-    App_HwTest_Run();
+    App_Manager_Run();                          /* lenh tu ESP + chay app hien hanh */
 
     /* Blink PC13 (active low) chu ky 1s de bao he thong con song */
     if ((Libs_System_GetTick() - l_LedToggleAtMs_u32) >= LED_TOGGLE_PERIOD_MS)

@@ -55,7 +55,7 @@
 //  ************************************************************************************************************/
 //	Doi thanh 1 khi user_diskio.c (SD card) da duoc implement de phat video tu the SD
 #ifndef VIDEO_USE_SDCARD
-#define VIDEO_USE_SDCARD                        0
+#define VIDEO_USE_SDCARD                        1
 #endif
 
 //	Ma tra ve
