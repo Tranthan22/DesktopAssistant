@@ -147,8 +147,8 @@ void Libs_Xxx_Init(void)
 ## 7. Quy tắc phân tầng (tóm tắt — chi tiết ở [01_Tong_Quan_Kien_Truc.md](01_Tong_Quan_Kien_Truc.md))
 
 1. **Chỉ Wrappers được gọi `HAL_*` / `__HAL_*`.**
-2. Ứng dụng (Core) chỉ gọi `Libs_*`.
-3. HAL handle (`SPI_HandleTypeDef`...) khai báo ở **STATIC VARIABLES** trong file Wrappers `.c`, không expose ra ngoài.
+2. Logic ứng dụng nằm ở tầng **App** (`App/App_<Tên>/App_<Tên>.c|h`, hàm `App_<Tên>_<Action>`); App chỉ gọi `Libs_*` và API middleware (FatFs `f_*`). Core (main.c) chỉ init hệ thống rồi gọi `App_*` trong `while(1)`.
+3. HAL handle (`hspi1`, `huart1`...) do **CubeMX sinh trong main.c**; Wrappers `extern` chúng ở section EXTERN VARIABLES và là **nơi duy nhất sử dụng** (xem mục 11). Không tự tạo handle riêng.
 4. Tài nguyên vật lý (port/pin/instance) chỉ xuất hiện ở `main.h` (define) và tầng Wrappers (sử dụng). Tầng Libs trở lên chỉ dùng **logical channel**.
 5. Không sửa code third-party (`Middlewares/`) và hạn chế sửa ngoài block `USER CODE` trong file CubeMX sinh ra (`Core/Src/stm32f4xx_*.c`, `FATFS/`).
 
@@ -197,3 +197,25 @@ void Libs_Xxx_Init(void)
 - `HAL_Delay()` được gọi thẳng ở Core/Libs thay vì qua Wrappers (ngoại lệ chấp nhận, xem tài liệu 01).
 - Banner `GLOBAL FUNCTIONS` ở một số file thiếu `// /` mở đầu so với các banner khác — không ảnh hưởng, nhưng file mới nên dùng thống nhất một kiểu.
 - `ILI9341_PINK` trùng giá trị `ILI9341_MAGENTA` (0xF81F).
+
+## 11. Sống chung với CubeMX (bắt buộc từ 2026-08-28)
+
+Thư mục `Core/` thuộc quyền CubeMX — nó sẽ **ghi đè toàn bộ code ngoài block USER CODE** mỗi lần
+Generate. Quy tắc:
+
+1. Code tay trong `Core/` (include, define, init app, vòng lặp) **chỉ** được viết trong
+   `/* USER CODE BEGIN/END */`.
+2. Pin define + LogicalChannel + kênh SPI/UART đặt trong block `USER CODE Private defines` của main.h.
+3. HAL handle do CubeMX sinh (main.c); Wrappers `extern` và là nơi duy nhất dùng chúng.
+   `Wrappers_*_Init` là no-op — tham số peripheral chỉnh trong file `.ioc`, không chỉnh tay.
+4. **Checklist sau mỗi lần Generate**: (a) diff `Core/` xem CubeMX đổi gì; (b) block USER CODE
+   còn nguyên không; (c) peripheral thêm/bớt → cập nhật Wrappers tương ứng + Doc/02;
+   (d) mức idle CS (Touch/SD phải SET) và pull-up Touch_IRQ cấu hình trong `.ioc`.
+
+## 12. Bài học từ các bug đã gặp (đừng lặp lại)
+
+- **Gửi data SPI phải tự quản CS/DC.** `Libs_ILI9341_DrawPixel` từng gọi thẳng `Wrappers_Spi_Transmit` ngay sau `WriteCommand` — lúc đó CS đã bị nhả lên 1 nên LCD bỏ qua toàn bộ, mọi hình vẽ bằng pixel ra màn hình đen. Luôn dùng `Libs_ILI9341_WriteData/WriteDataBuffer` (xem tài liệu 02).
+- **Buffer tính theo byte, không theo pixel.** `DrawColourBurst` từng đặt `Buffer_Size = Size` (số pixel) rồi ghi 2 byte/pixel → tràn mảng VLA khi số lẻ và lệch cặp byte màu; `Size = 0` còn gây chia cho 0 → HardFault. Khi buffer chứa cặp byte, kích thước phải luôn chẵn và phải guard trường hợp rỗng.
+- **Cast float âm sang unsigned là undefined behavior.** Hàm blend màu ban đầu dùng `uint8_t` cho hiệu số kênh màu nên fade sai khi màu giảm dần — dùng kiểu có dấu (`int16_t`) cho phép nội suy.
+- **Khởi tạo nhiều biến trên một dòng dễ sót.** `uint32_t a, b = 0;` chỉ khởi tạo `b`; lỗi này từng làm tọa độ X của cảm ứng tính từ giá trị rác. Khai báo mỗi biến một dòng, có giá trị khởi tạo rõ ràng.
+- **CS của slave dùng chung bus phải idle ở mức 1.** Touch CS từng được init về 0 → XPT2046 giữ bus SPI1 và phá dữ liệu gửi cho màn hình.

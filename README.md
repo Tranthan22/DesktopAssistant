@@ -8,4 +8,4 @@ Bộ tài liệu này tổng hợp kiến thức về dự án và quy tắc l�
 | [02_Phan_Cung_Ngoai_Vi.md](02_Phan_Cung_Ngoai_Vi.md) | MCU, cấu hình clock, bảng mapping chân, cấu hình SPI / I2C / TIM / GPIO, màn hình ILI9341, thẻ SD |
 | [03_Coding_Convention.md](03_Coding_Convention.md) | Quy tắc đặt tên (prefix/suffix), template file .c/.h, quy tắc phân lớp, xử lý lỗi, checklist khi thêm module mới |
 
-**Cập nhật lần cuối:** 2026-08-22 — bổ sung 3 module mới: `Libs_Touch_XPT2046` (cảm ứng), `Libs_Video` (phát video), `Libs_Animation` (hiệu ứng động). Khi kiến trúc hoặc convention thay đổi, cập nhật lại các file tương ứng.
+**Cập nhật lần cuối:** 2026-08-27 — thêm tầng **App** (`App_HwTest`: test màn hình/SD/cảm ứng), driver thẻ SD `Libs_SdCard` + `user_diskio.c` hoàn chỉnh. Trước đó (08-22): `Libs_Touch_XPT2046`, `Libs_Video`, `Libs_Animation`. Khi kiến trúc hoặc convention thay đổi, cập nhật lại các file tương ứng.

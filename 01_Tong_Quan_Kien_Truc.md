@@ -9,35 +9,39 @@ Nhiệm vụ hiện tại của MainECU:
 - Điều khiển **màn hình TFT ILI9341** 320×240 (SPI) — vẽ màu nền, vẽ hình, vẽ chữ, hiển thị ảnh.
 - Phát **video** (từ flash hoặc thẻ SD) và chạy **animation** (bóng nảy, spinner, progress bar, sóng sin, starfield, chữ trượt, số đếm, fade) trên màn hình.
 - Đọc **cảm ứng điện trở XPT2046** (dùng chung bus SPI1 với màn hình, polling).
-- Kết nối **thẻ SD** qua FatFs (đang ở giai đoạn khung, chưa hoàn thiện driver).
-- Dự phòng kết nối với **module ESP** qua SPI2 và I2C1 (chân đã cấp phát, chưa có logic ứng dụng).
+- Đọc/ghi **thẻ SD** qua FatFs (driver SD-SPI tự viết, hoạt động).
+- Kết nối **ESP8266 Station** qua **USART1** (PA9/PA10, 115200) — base code ESP ở folder `Station/`, protocol chung tại `Station/src/Link/StationLinkCore.h` (Libs_EspLink phía STM32: TBD).
+- **LED PC13** blink chu kỳ 1s báo hệ thống còn sống.
 
 ## 2. Cấu trúc thư mục
 
 ```
 MainECU_STM32/
-├── Core/                  # Tầng ứng dụng + file hệ thống CubeMX sinh ra
+├── Core/                  # Entry point (main.c) + file hệ thống CubeMX sinh ra
 │   ├── Inc/               #   main.h (pin map, logical channel), cấu hình HAL, IT
 │   ├── Src/               #   main.c (entry point), stm32f4xx_it.c, hal_msp.c, ...
 │   └── Startup/           #   startup_stm32f411ceux.s
 ├── Libs/                  # Tầng thư viện logic (API cho ứng dụng) — 1 thư mục / module
-│   ├── Libs_System/       #   Init hệ thống (bọc HAL_Init)
-│   ├── Libs_Clock/        #   Cấu hình system clock
+│   ├── Libs_System/       #   GetTick/DelayMs (init hệ thống do CubeMX)
+│   ├── Libs_Clock/        #   (giữ API; clock config do CubeMX)
 │   ├── Libs_Gpio/         #   GPIO logic
 │   ├── Libs_Spi/          #   SPI logic
-│   ├── Libs_I2c/          #   I2C logic
+│   ├── Libs_Uart/         #   UART logic (link ESP8266 Station)
 │   ├── Libs_Pwm/          #   PWM/Timer logic
 │   ├── Libs_Screen_ILI9341/  # Driver màn hình: Driver (lệnh LCD) + GFX (vẽ hình/chữ/ảnh) + Font
 │   ├── Libs_Touch_XPT2046/   # Driver cảm ứng điện trở XPT2046 (SPI1 dùng chung, polling)
 │   ├── Libs_Video/        #   Phát video RGB565: từ flash (mảng C) hoặc thẻ SD (file .rvd)
-│   └── Libs_Animation/    #   Hiệu ứng animation: easing, blend màu, ball/spinner/progress/wave/starfield/text/counter/fade
+│   ├── Libs_Animation/    #   Hiệu ứng animation: easing, blend màu, ball/spinner/progress/wave/starfield/text/counter/fade
+│   └── Libs_SdCard/       #   Driver thẻ SD/SDHC chế độ SPI (FatFs gọi qua user_diskio.c)
+├── App/                   # Tầng ứng dụng — 1 thư mục / app
+│   └── App_HwTest/        #   App test phần cứng: screen / SD card / touch, báo kết quả lên màn hình
 ├── Wrappers/              # Tầng bọc HAL — CHỈ tầng này được gọi HAL trực tiếp
 │   ├── Wrappers_System/   #   HAL_Init
 │   ├── Wrappers_Clock/    #   RCC/PLL config
-│   ├── Wrappers_Gpio/     #   HAL_GPIO_Init/Write/Read
-│   ├── Wrappers_Spi/      #   SPI1/SPI2 handle + transmit
-│   ├── Wrappers_I2c/      #   I2C1 handle
-│   └── Wrappers_Pwm/      #   TIM2 handle
+│   ├── Wrappers_Gpio/     #   GPIO Write/Read/Toggle (init do CubeMX)
+│   ├── Wrappers_Spi/      #   SPI transmit + đổi prescaler theo kênh (handle CubeMX)
+│   ├── Wrappers_Uart/     #   USART1 transmit/receive (handle CubeMX)
+│   └── Wrappers_Pwm/      #   TIM2 (init do CubeMX)
 ├── FATFS/                 # Glue code FatFs do CubeMX sinh (App/ + Target/)
 ├── Middlewares/           # Third-party: FatFs source
 └── Doc/                   # Tài liệu dự án (bộ tài liệu này)
@@ -49,14 +53,17 @@ Quy tắc: **mỗi module một thư mục riêng**, tên thư mục = tên file
 
 ```
 ┌─────────────────────────────────────────────┐
-│  Core (Application)  — main.c               │   Chỉ gọi Libs_* (+ MX_FATFS_Init)
+│  Core — main.c                              │   Entry: init hệ thống rồi gọi App
+├─────────────────────────────────────────────┤
+│  App (Application) — App_Xxx                │   Logic ứng dụng; gọi Libs_* và
+│                                             │   API middleware (FatFs f_*)
 ├─────────────────────────────────────────────┤
 │  Libs (Logical layer) — Libs_Xxx            │   API logic, driver thiết bị (ILI9341)
 │                                             │   Chỉ gọi Wrappers_*, KHÔNG gọi HAL
 ├─────────────────────────────────────────────┤
 │  Wrappers (HAL wrapper) — Wrappers_Xxx      │   Nơi DUY NHẤT gọi HAL_* / __HAL_*
-│                                             │   Giữ HAL handle (static), map logical
-│                                             │   channel → peripheral vật lý
+│                                             │   Dùng HAL handle CubeMX sinh (extern),
+│                                             │   map logical channel → peripheral vật lý
 ├─────────────────────────────────────────────┤
 │  STM32 HAL / CMSIS / FatFs (Middlewares)    │   Code hãng / third-party, không sửa
 └─────────────────────────────────────────────┘
@@ -71,7 +78,8 @@ Mục đích của kiến trúc này:
 
 | Tầng | Được phép gọi | Không được gọi |
 |---|---|---|
-| Core (main.c) | `Libs_*`, `MX_FATFS_Init` | `Wrappers_*`, `HAL_*` (ngoại lệ hiện tại: `HAL_Delay`, `Error_Handler`) |
+| Core (main.c) | `App_*`, `Libs_*` (phần init), `MX_FATFS_Init` | `Wrappers_*`, `HAL_*` (ngoại lệ: `Error_Handler`) |
+| App | `Libs_*`, API middleware (FatFs `f_*`) | `Wrappers_*`, `HAL_*` |
 | Libs | `Wrappers_*`, `Libs_*` khác | `HAL_*` (ngoại lệ hiện tại: `HAL_Delay` trong driver ILI9341) |
 | Wrappers | `HAL_*`, `__HAL_*` | `Libs_*` (không gọi ngược lên trên) |
 
@@ -111,32 +119,39 @@ Toàn bộ mapping tài nguyên vật lý được tập trung ở [main.h](../C
 - Với **SPI**: kênh là `uint8_t`, [Wrappers_Spi.c](../Wrappers/Wrappers_Spi/Wrappers_Spi.c) chọn handle `SPI1`/`SPI2` bằng if/else theo giá trị kênh.
 - **Khi thêm thiết bị mới**: khai báo pin define + LogicalChannel mới trong main.h, thêm nhánh xử lý kênh trong Wrappers tương ứng. Không hard-code port/pin ở tầng Libs.
 
-## 5. Luồng khởi động (main.c)
+## 5. Luồng khởi động (main.c) — từ 2026-08-28 Core thuộc quyền CubeMX
 
-Thứ tự init trong [main.c](../Core/Src/main.c) — **giữ nguyên thứ tự này** khi thêm module:
+`main.c`/`main.h` giữ nguyên skeleton do CubeMX sinh; **mọi code tay nằm trong các block
+`/* USER CODE BEGIN/END */`** để sống sót qua các lần re-generate:
 
 ```c
-int main(void)
+int main(void)                       // CubeMX skeleton
 {
-    /* 1. Hệ thống */
-    Libs_System_Init();               // HAL_Init (SysTick, NVIC priority)
-    Libs_Clock_SystemClock_Config();  // HSI + PLL → SYSCLK 100MHz
-    /* 2. Ngoại vi */
-    Libs_Spi_Init();                  // SPI1 (màn hình) + SPI2 (ESP)
-    Libs_I2c_Init();                  // I2C1 (ESP)
-    Libs_Gpio_Init();                 // Các chân CS/RST/DC/LED/IRQ
-    Libs_Pwm_Init();                  // TIM2 base timer
-    Libs_ILI9341_Init();              // Chuỗi lệnh khởi tạo LCD
-    Libs_XPT2046_Init();              // Nhả CS cảm ứng (bus SPI1 dùng chung)
-    /* 3. Middleware */
-    MX_FATFS_Init();                  // Link driver FatFs
-    /* 4. Ứng dụng */
-    ...
-    while (1) { }
+    HAL_Init();                      // CubeMX (timebase TIM1)
+    SystemClock_Config();            // CubeMX (HSI+PLL 100MHz)
+    MX_GPIO_Init();                  // CubeMX (PC13 LED, CS idle-high, ...)
+    MX_SPI1_Init(); MX_FATFS_Init(); MX_TIM2_Init(); MX_SPI2_Init();
+    MX_USART1_UART_Init();           // CubeMX (ESP link 115200)
+    /* USER CODE BEGIN 2 */
+    Libs_ILI9341_Init();             // từ đây trở đi: chỉ qua tầng Libs/App
+    Libs_XPT2046_Init();
+    Libs_Gpio_Write(LogicalChannel_4, 1);   // backlight
+    App_HwTest_Init();
+    /* USER CODE END 2 */
+    while (1)
+    {
+        /* USER CODE BEGIN 3 */
+        App_HwTest_Run();
+        // blink PC13 mỗi 500ms (chu kỳ 1s) qua Libs_Gpio_Toggle
+        /* USER CODE END 3 */
+    }
 }
 ```
 
-Cấu hình GPIO ở mức chân (mode, pull, speed) nằm ở [Wrappers_Gpio.c](../Wrappers/Wrappers_Gpio/Wrappers_Gpio.c); cấu hình chân alternate-function cho SPI/I2C/TIM nằm ở [stm32f4xx_hal_msp.c](../Core/Src/stm32f4xx_hal_msp.c) (CubeMX sinh, theo pattern chuẩn của HAL).
+Hệ quả với tầng Wrappers: HAL handle (`hspi1`, `hspi2`, `huart1`, `htim2`) do CubeMX sinh trong
+main.c; Wrappers `extern` chúng và vẫn là **nơi duy nhất sử dụng** — các hàm `Wrappers_*_Init`
+thành no-op (giữ API). Định nghĩa pin/kênh logic trong `main.h` phải đặt trong block
+`USER CODE Private defines`.
 
 ## 6. Module màn hình ILI9341
 
@@ -163,7 +178,7 @@ Kiến thức quan trọng:
 | Module | Vai trò | Ghi chú |
 |---|---|---|
 | [Libs_Touch_XPT2046](../Libs/Libs_Touch_XPT2046/Libs_XPT2046_Driver.h) | Đọc cảm ứng điện trở (polling): `Libs_XPT2046_IsPressed()`, `Libs_XPT2046_ReadCoordinates()` | Port từ lib của Matej Artnak (MIT) — chuyển từ bit-bang sang **SPI1 phần cứng dùng chung với màn hình**, hạ tốc độ xuống 1.5625MHz mỗi transaction qua kênh logic `SPI_Touch`. Calibration hardcode cho `VERTICAL_1`, cần đo lại theo panel thực tế |
-| [Libs_Video](../Libs/Libs_Video/Libs_Video.h) | Phát video RGB565BE: chế độ **flash** (mảng frame trong code, non-blocking theo FPS) và chế độ **SD** (stream file `.rvd`, đang tắt bằng `VIDEO_USE_SDCARD=0` vì user_diskio chưa xong) | `Libs_Video_DrawFrame()` blit thẳng từ bộ nhớ, nhanh hơn `DrawImage`. Script `Tools/video2c.py` được nhắc đến trong header **chưa có trong repo** |
+| [Libs_Video](../Libs/Libs_Video/Libs_Video.h) | Phát video RGB565BE: chế độ **flash** (mảng frame trong code, non-blocking theo FPS) và chế độ **SD** (stream file `.rvd` — bật bằng `VIDEO_USE_SDCARD=1`, SD driver đã có) | `Libs_Video_DrawFrame()` blit thẳng từ bộ nhớ, nhanh hơn `DrawImage`. Script `Tools/video2c.py` được nhắc đến trong header **chưa có trong repo** |
 | [Libs_Animation](../Libs/Libs_Animation/Libs_Animation.h) | 6 hàm easing, blend màu RGB565, và các hiệu ứng: ball, spinner, progress bar, wave, starfield 3D, text slide-in, counter, screen fade + `Libs_Animation_Demo()` | Nguyên tắc: không xóa cả màn hình mỗi frame (dirty rectangle), animation theo thời gian thực (`Libs_System_GetTick`) |
 
 ## 7. Trạng thái hiện tại & phần còn thiếu (tính đến 2026-08-22)
@@ -173,17 +188,19 @@ Kiến thức quan trọng:
 - Màn hình ILI9341: init, fill màu, vẽ hình/chữ, hiển thị ảnh.
 - Cảm ứng XPT2046 (polling qua SPI1 dùng chung — cần calibrate lại theo panel).
 - Video từ flash + toàn bộ hiệu ứng animation (xem mục 6b).
+- Thẻ SD qua FatFs: driver SPI-mode [Libs_SdCard](../Libs/Libs_SdCard/Libs_SdCard.h) + `user_diskio.c` (mount / đọc / ghi file).
+- App test phần cứng [App_HwTest](../App/App_HwTest/App_HwTest.h) — app hiện hành chạy trong `while(1)` của main.c.
 
 **Còn thiếu / cần lưu ý:**
 
 | Hạng mục | Trạng thái |
 |---|---|
-| `Photo_Sources.h` | **Bị thiếu trong repo** — [main.c](../Core/Src/main.c) include và dùng mảng `Image`, nhưng file không tồn tại → hiện tại **build sẽ fail** nếu không tự tạo file này (file dữ liệu ảnh sinh từ tool convert, dung lượng lớn nên có thể đã bị loại khỏi repo) |
+| `Photo_Sources.h` | main.c **không còn dùng** (đã chuyển sang App_HwTest) nên không chặn build nữa; khi cần hiển thị ảnh tĩnh thì tạo lại file này bằng tool convert |
 | `Tools/video2c.py` | Script convert video được nhắc trong [Libs_Video.h](../Libs/Libs_Video/Libs_Video.h) nhưng **chưa có trong repo** — cần bổ sung để tạo dữ liệu frame/.rvd |
-| SD card | [user_diskio.c](../FATFS/Target/user_diskio.c) vẫn là **stub CubeMX** (`disk_read` trả `RES_OK` mà không đọc gì, `Stat = STA_NOINIT`) — chưa implement giao tiếp SPI với thẻ SD. Vì vậy chế độ video từ SD đang tắt (`VIDEO_USE_SDCARD=0`) |
+| SD card | **Đã implement** ([Libs_SdCard](../Libs/Libs_SdCard/Libs_SdCard.c) + [user_diskio.c](../FATFS/Target/user_diskio.c)). Đọc/ghi theo đơn block (CMD17/CMD24) — đủ cho test và file nhỏ; khi stream video từ SD nên nâng cấp multi-block (CMD18/CMD25). Có thể bật `VIDEO_USE_SDCARD=1` trong Libs_Video.h |
 | Touch calibration | Các hằng `XPT2046_X/Y_OFFSET`, `_MAGNITUDE`, `_TRANSLATION` lấy nguyên từ lib gốc (panel khác) — cần đo lại trên phần cứng thật. Chế độ ngắt EXTI3 vẫn chưa dùng (đang polling) |
 | ESP (SPI2 + I2C1) | Peripheral đã init nhưng **chưa có protocol/logic ứng dụng** |
 | PWM | Module tên là Pwm nhưng [Wrappers_Pwm.c](../Wrappers/Wrappers_Pwm/Wrappers_Pwm.c) mới init **TIM2 base timer**, chưa cấu hình PWM output channel |
-| File project (.ioc, .project, ...) | Không có trong repo — project gốc tạo bằng STM32CubeIDE/CubeMX (dựa vào cấu trúc file sinh ra). Nhớ thêm 3 thư mục Libs mới vào include path khi mở lại bằng CubeIDE |
+| File project (.ioc, .project, ...) | Không có trong repo — project gốc tạo bằng STM32CubeIDE/CubeMX (dựa vào cấu trúc file sinh ra). Nhớ thêm các thư mục `Libs_*` mới và `App/App_HwTest` vào include path + source path khi build |
 | README.md gốc | Chỉ có tiêu đề, chưa có nội dung |
 | `DesktopAssistant/References/` | Bản gốc của 3 lib touch/video/animation (trước khi port) — giữ để đối chiếu, **không đưa vào build** |

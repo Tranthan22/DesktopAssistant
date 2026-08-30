@@ -358,7 +358,10 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOA, Touch_CS_Pin|SDCard_CS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, Screen_CS_Pin|Screen_RST_Pin|Screen_DC_Pin|Screen_Led_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(Screen_CS_GPIO_Port, Screen_CS_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, Screen_RST_Pin|Screen_DC_Pin|Screen_Led_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : PC13 */
   GPIO_InitStruct.Pin = GPIO_PIN_13;

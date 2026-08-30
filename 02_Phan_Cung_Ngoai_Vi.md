@@ -25,19 +25,19 @@ Nguồn: [main.h](../Core/Inc/main.h) và [stm32f4xx_hal_msp.c](../Core/Src/stm3
 
 | Chân | Tên define | Chức năng | Cấu hình |
 |---|---|---|---|
+| PC13 | `Led_Status_Pin` | LED status (blink 1s, **active low**) | Output PP — LogicalChannel_8 |
+| PA9 | — | USART1 TX → ESP8266 RX | AF7, 115200 8N1 — `UART_Esp` |
+| PA10 | — | USART1 RX ← ESP8266 TX | AF7 |
 | PA3 | `Touch_IRQ_Pin` | PENIRQ cảm ứng (low = chạm) | GPIO EXTI rising + **pull-up** (PENIRQ open-drain), NVIC chưa enable, đang polling — LogicalChannel_6 |
 | PA4 | `Touch_CS_Pin` | CS cảm ứng XPT2046 | Output PP, **idle high** (nhả bus SPI1 dùng chung) — LogicalChannel_5 |
 | PA5 | — | SPI1 SCK | AF5 |
 | PA6 | — | SPI1 MISO | AF5 |
 | PA7 | — | SPI1 MOSI | AF5 |
-| PA8 | `SDCard_CS_Pin` | CS thẻ SD | Output PP, low speed |
+| PA8 | `SDCard_CS_Pin` | CS thẻ SD (bus SPI2) | Output PP, **idle high** (nhả bus SPI2 dùng chung với ESP) — LogicalChannel_7 |
 | PB0 | `Screen_CS_Pin` | CS màn hình ILI9341 | Output PP — LogicalChannel_1 |
 | PB1 | `Screen_RST_Pin` | Reset màn hình | Output PP — LogicalChannel_2 |
 | PB2 | `Screen_DC_Pin` | Data/Command màn hình | Output PP — LogicalChannel_3 |
-| PB6 | `ESP_SCL_Pin` | I2C1 SCL (ESP) | AF4 |
-| PB7 | `ESP_SDA_Pin` | I2C1 SDA (ESP) | AF4 |
 | PB10 | `Screen_Led_Pin` | Đèn nền màn hình | Output PP — LogicalChannel_4 |
-| PB12 | `ESP_CS_Pin` | CS module ESP | Output PP |
 | PB13 | — | SPI2 SCK | AF5 |
 | PB14 | — | SPI2 MISO | AF5 |
 | PB15 | — | SPI2 MOSI | AF5 |
@@ -48,7 +48,7 @@ Nguồn: [main.h](../Core/Inc/main.h) và [stm32f4xx_hal_msp.c](../Core/Src/stm3
 
 | | SPI1 (kênh logic 1) | SPI2 (kênh logic 2) |
 |---|---|---|
-| Dùng cho | Màn hình ILI9341 (`SPI_Screen`), touch + SD dùng chung bus (CS riêng) | Module ESP |
+| Dùng cho | Màn hình ILI9341 (`SPI_Screen`) + cảm ứng XPT2046 dùng chung bus (CS riêng) | Thẻ SD (ESP đã chuyển sang UART) |
 | Mode | Master, 2 lines, 8-bit, MSB first | Master, 2 lines, 8-bit, MSB first |
 | CPOL/CPHA | Low / 1 edge (mode 0) | Low / 1 edge (mode 0) |
 | NSS | Software (CS điều khiển bằng GPIO) | Software |
@@ -57,15 +57,22 @@ Nguồn: [main.h](../Core/Inc/main.h) và [stm32f4xx_hal_msp.c](../Core/Src/stm3
 
 **Kênh logic 3 (`SPI_Touch`)**: cũng là SPI1 nhưng mỗi transaction tạm hạ prescaler xuống **/64 → 1.5625 Mbit/s** (XPT2046 chỉ chịu ~2MHz) rồi trả về /8 — xử lý trong `Wrappers_Spi_Transmit/TransmitReceive`. `Wrappers_Spi_TransmitReceive()` (full-duplex) được thêm cho cảm ứng.
 
-### I2C1 ([Wrappers_I2c.c](../Wrappers/Wrappers_I2c/Wrappers_I2c.c))
-- 100 kHz (standard mode), duty cycle 2, addressing 7-bit. Chưa có hàm read/write — mới chỉ init.
+**Kênh logic 4 (`SPI_SdCard`)**: SPI2 full speed (**25 Mbit/s**, APB1 50MHz /2) cho pha dữ liệu thẻ SD. **Kênh logic 5 (`SPI_SdCardInit`)**: SPI2 hạ prescaler **/128 → 390.6 kbit/s** vì chuẩn SD yêu cầu ≤400kHz trong pha init. `Libs_SdCard` tự chuyển từ kênh 5 sang kênh 4 sau khi init thành công. Lưu ý: 25Mbit/s là mức trần của SD default-speed mode — nếu dây dài / đọc lỗi chập chờn, hạ prescaler SPI2 trong `Wrappers_Spi_Init` xuống /4 (12.5Mbit/s).
+
+### USART1 — link ESP8266 Station ([Wrappers_Uart.c](../Wrappers/Wrappers_Uart/Wrappers_Uart.c))
+- PA9 TX / PA10 RX, 115200 8N1, kênh logic `UART_Esp` = 1. Cấu hình do CubeMX (`MX_USART1_UART_Init`).
+- `Wrappers_Uart_Transmit` (blocking, timeout 100ms) và `Wrappers_Uart_Receive` (polling, đọc hết byte đang chờ, tự xóa lỗi overrun).
+- **TODO**: bật USART1 NVIC trong CubeMX + chuyển RX sang IRQ ring buffer khi làm `Libs_EspLink` — polling sẽ rớt byte nếu vòng lặp chính bận quá ~90µs/byte. Protocol chung 2 phía: `Station/src/Link/StationLinkCore.h`.
+
+### TIM1 — HAL timebase
+- Từ lần gen CubeMX 2026-08-28, tick HAL (`HAL_GetTick/HAL_Delay`) chạy bằng **TIM1** ([stm32f4xx_hal_timebase_tim.c](../Core/Src/stm32f4xx_hal_timebase_tim.c), IRQ `TIM1_UP_TIM10_IRQHandler`), không còn dùng SysTick. Code trong `SysTick_Handler` (FatFsCnt/Timer1/Timer2) hiện **không chạy nữa** — không sao vì driver SD không dùng chúng.
 
 ### TIM2 ([Wrappers_Pwm.c](../Wrappers/Wrappers_Pwm/Wrappers_Pwm.c))
 - Base timer: prescaler 10000, period 999 → tick 10 kHz, update ~10 Hz (timer clock 100 MHz).
 - Clock source internal, TRGO reset. **Chưa cấu hình PWM output channel** và chưa start timer.
 
 ### GPIO ([Wrappers_Gpio.c](../Wrappers/Wrappers_Gpio/Wrappers_Gpio.c))
-- Enable clock port A + B; các chân output khởi tạo mức RESET (0), **riêng Touch_CS khởi tạo SET** (CS active-low, nhả bus SPI1 dùng chung).
+- Enable clock port A + B; các chân output khởi tạo mức RESET (0), **riêng Touch_CS và SDCard_CS khởi tạo SET** (CS active-low, nhả bus SPI dùng chung — touch trên SPI1, SD trên SPI2).
 - Đọc/ghi qua macro `Wrappers_Gpio_Write(LogicalChannel_x, level)` / `Wrappers_Gpio_Read(LogicalChannel_x)`.
 
 ### Cảm ứng XPT2046 ([Libs_XPT2046_Driver.c](../Libs/Libs_Touch_XPT2046/Libs_XPT2046_Driver.c))
@@ -80,11 +87,31 @@ Nguồn: [main.h](../Core/Inc/main.h) và [stm32f4xx_hal_msp.c](../Core/Src/stm3
 - Đèn nền bật bằng `Libs_Gpio_Write(LogicalChannel_4, 1)` (chưa dùng PWM để chỉnh độ sáng — TIM2 có thể dành cho việc này sau).
 - Lưu ý: define `ILI9341_PINK` đang trùng giá trị với `ILI9341_MAGENTA` (0xF81F) — bug nhỏ trong bảng màu.
 
+### Quy tắc giao tiếp SPI với ILI9341 (quan trọng khi viết hàm vẽ mới)
+
+Panel **chỉ nhận dữ liệu khi CS = 0**, và **DC phải = 1** khi gửi data. Vì `Libs_ILI9341_WriteCommand()` tự nhả CS lên 1 sau khi gửi lệnh, mọi dữ liệu gửi tiếp sau đó **phải tự kéo CS xuống và DC lên** — nếu không, LCD bỏ qua toàn bộ và màn hình không đổi. Dùng sẵn các helper trong driver thay vì gọi thẳng `Wrappers_Spi_Transmit`:
+
+| Helper | Dùng khi |
+|---|---|
+| `Libs_ILI9341_WriteCommand(cmd)` | gửi 1 byte lệnh |
+| `Libs_ILI9341_WriteData(byte)` | gửi 1 byte data |
+| `Libs_ILI9341_WriteDataBuffer(buf, size)` | gửi nhiều byte data (tự set DC=1, CS=0, nhả CS khi xong) |
+
+Đây từng là bug làm mọi hiệu ứng vẽ qua `DrawPixel` (spinner, bóng nảy, starfield, sóng sin) hiển thị đen — đã sửa 2026-08-23.
+
+### Hiệu năng hàm vẽ
+
+- `Libs_ILI9341_DrawPixel()` tốn 6 transaction SPI cho 1 điểm ảnh → **rất chậm**, chỉ dùng cho điểm lẻ.
+- `DrawHorizontalLine` / `DrawVerticalLine` / `DrawRectangle` / `DrawFilledCircle` gửi theo **burst** (tối đa 500 byte/lần) → nhanh hơn hàng chục lần. Ưu tiên các hàm này khi vẽ khối.
+- `Libs_ILI9341_DrawFilledCircle()` đã được viết lại theo từng dòng ngang (burst) thay vì từng pixel — cần thiết để animation chạy mượt.
+
 ## 6. Thẻ SD + FatFs
 
 - Middleware: FatFs (bản đi kèm CubeMX) tại [Middlewares/Third_Party/FatFs/](../Middlewares/Third_Party/FatFs/src/) — **code third-party, không sửa trực tiếp**.
 - Glue code: [FATFS/App/fatfs.c](../FATFS/App/fatfs.c) (link driver `USER_Driver`, `get_fattime()` trả 0 vì chưa có RTC) và [FATFS/Target/user_diskio.c](../FATFS/Target/user_diskio.c).
-- **Trạng thái: chưa hoạt động.** `user_diskio.c` là stub — cần implement `USER_initialize/status/read/write/ioctl` bằng giao thức SD-SPI (qua SPI1 + `SDCard_CS_Pin`) trong các block `USER CODE`.
+- **Trạng thái: hoạt động.** [Libs_SdCard](../Libs/Libs_SdCard/Libs_SdCard.c) implement giao thức SD-SPI (CMD0/CMD8/ACMD41/CMD58; hỗ trợ SDv1/SDv2/SDHC/MMC, nhận diện block-addressing qua bit CCS trong OCR); `user_diskio.c` chỉ là glue gọi xuống driver trong các block `USER CODE`.
+- Bus: **SPI2** (dùng chung với ESP, CS riêng PA8). Init ở 390kHz (kênh `SPI_SdCardInit`), chạy ở 25Mbit/s (kênh `SPI_SdCard`). Đọc/ghi đơn block (CMD17/CMD24) lặp cho nhiều block; `GET_SECTOR_COUNT` đọc CSD nên `f_mkfs` dùng được.
+- Toàn chuỗi FatFs → user_diskio → Libs_SdCard đã verify bằng simulator thẻ SDHC trên host (mkfs → mount → ghi/đọc file round-trip).
 
 ## 7. Ngắt (Interrupts)
 
